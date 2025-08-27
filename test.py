@@ -9,7 +9,7 @@ import asyncio
 import json
 import aiohttp
 
-ip = "192.168.1.25"
+ip = "192.168.2.40"
 
 # asyncio.run(
 #     checkResponseForError(
@@ -39,8 +39,8 @@ director_bearer_token = asyncio.run(
 # print(director_bearer_token)
 director = C4Director(ip, director_bearer_token["token"])
 
-alarm = C4SecurityPanel(director, 460)
-print(asyncio.run(alarm.getEmergencyTypes()))
+#alarm = C4SecurityPanel(director, 460)
+#print(asyncio.run(alarm.getEmergencyTypes()))
 
 print(asyncio.run(director.getItemSetup(471)))
 
