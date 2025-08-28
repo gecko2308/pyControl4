@@ -116,40 +116,61 @@ class C4Websocket:
         self.connect_callback = connect_callback
         self.disconnect_callback = disconnect_callback
 
-        # Keep track of the callbacks registered for each item id
-        self._item_callbacks = dict()
+        # ⭐ MODIFIÉ : Support de callbacks multiples par item_id
+        self._item_callbacks = dict()  # item_id -> list[callback]
         # Initialize self._sio to None
         self._sio = None
 
     @property
     def item_callbacks(self):
         """Returns a dictionary of registered item ids (key) and their callbacks (value).
-
-        item_callbacks cannot be modified directly. Use add_item_callback() and remove_item_callback() instead.
+        
+        ⭐ MODIFIÉ : Retourne maintenant un dict plat pour compatibilité avec le code existant.
         """
-        return self._item_callbacks
+        # Pour compatibilité, retourne le premier callback de chaque liste
+        return {item_id: callbacks[0] if callbacks else None 
+                for item_id, callbacks in self._item_callbacks.items()}
 
     def add_item_callback(self, item_id, callback):
         """Register a callback to receive updates about an item.
-        If a callback is already registered for the item, it will be overwritten with the provided callback.
+        ⭐ MODIFIÉ : Supporte maintenant plusieurs callbacks par item_id.
 
         Parameters:
             `item_id` - The Control4 item ID.
-
             `callback` - The callback to be called when an update is received for the provided item id.
         """
-
         _LOGGER.debug("Subscribing to updates for item id: %s", item_id)
 
-        self._item_callbacks[item_id] = callback
+        if item_id not in self._item_callbacks:
+            self._item_callbacks[item_id] = []
+            
+        # Éviter les doublons
+        if callback not in self._item_callbacks[item_id]:
+            self._item_callbacks[item_id].append(callback)
 
-    def remove_item_callback(self, item_id):
-        """Unregister callback for an item.
+    def remove_item_callback(self, item_id, callback=None):
+        """Unregister callback(s) for an item.
+        ⭐ MODIFIÉ : Supporte la suppression sélective ou totale.
 
         Parameters:
             `item_id` - The Control4 item ID.
+            `callback` - (Optional) Specific callback to remove. If None, removes all callbacks for this item_id.
         """
-        self._item_callbacks.pop(item_id)
+        if item_id not in self._item_callbacks:
+            return
+            
+        if callback is None:
+            # Supprimer tous les callbacks pour cet item_id
+            del self._item_callbacks[item_id]
+        else:
+            # Supprimer un callback specific
+            try:
+                self._item_callbacks[item_id].remove(callback)
+                # Si plus de callbacks, supprimer l'entrée
+                if not self._item_callbacks[item_id]:
+                    del self._item_callbacks[item_id]
+            except ValueError:
+                pass  # Callback pas trouvé
 
     async def sio_connect(self, director_bearer_token):
         """Start WebSockets connection and listen, using the provided director_bearer_token to authenticate with the Control4 Director.
@@ -199,19 +220,24 @@ class C4Websocket:
         """Process an incoming event message."""
         _LOGGER.debug(message)
         try:
-            c = self._item_callbacks[message["iddevice"]]
+            callbacks = self._item_callbacks[message["iddevice"]]  # ⭐ MODIFIÉ : récupère la liste
         except KeyError:
             _LOGGER.debug("No Callback for device id {}".format(message["iddevice"]))
             return True
 
-        if isinstance(message, list):
-            for m in message:
-                await c(message["iddevice"], m)
-        else:
-            await c(message["iddevice"], message)
+        # ⭐ MODIFIÉ : Appelle tous les callbacks pour cet item_id
+        for callback in callbacks[:]:  # Copie pour éviter les modifications concurrentes
+            try:
+                if isinstance(message, list):
+                    for m in message:
+                        await callback(message["iddevice"], m)
+                else:
+                    await callback(message["iddevice"], message)
+            except Exception as exc:
+                _LOGGER.warning("Captured exception during callback: {}".format(str(exc)))
 
     async def _execute_callback(self, callback, *args, **kwargs):
-        """Callback with some data capturing any excpetions."""
+        """Callback with some data capturing any exceptions."""
         try:
             self.sio.emit("ping")
             await callback(*args, **kwargs)
