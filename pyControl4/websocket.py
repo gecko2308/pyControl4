@@ -116,8 +116,7 @@ class C4Websocket:
         self.connect_callback = connect_callback
         self.disconnect_callback = disconnect_callback
 
-        # ⭐ MODIFIÉ : Support de callbacks multiples par item_id
-        self._item_callbacks = dict()  # item_id -> list[callback]
+        self._item_callbacks = dict()  
         # Initialize self._sio to None
         self._sio = None
 
@@ -125,15 +124,14 @@ class C4Websocket:
     def item_callbacks(self):
         """Returns a dictionary of registered item ids (key) and their callbacks (value).
         
-        ⭐ MODIFIÉ : Retourne maintenant un dict plat pour compatibilité avec le code existant.
+        MODIFIED: Returns flattened dict for compatibility with existing code.
         """
-        # Pour compatibilité, retourne le premier callback de chaque liste
         return {item_id: callbacks[0] if callbacks else None 
                 for item_id, callbacks in self._item_callbacks.items()}
 
     def add_item_callback(self, item_id, callback):
         """Register a callback to receive updates about an item.
-        ⭐ MODIFIÉ : Supporte maintenant plusieurs callbacks par item_id.
+        MODIFIED: Now supports multiple callbacks per item_id.
 
         Parameters:
             `item_id` - The Control4 item ID.
@@ -144,13 +142,13 @@ class C4Websocket:
         if item_id not in self._item_callbacks:
             self._item_callbacks[item_id] = []
             
-        # Éviter les doublons
+        # Avoid duplicates
         if callback not in self._item_callbacks[item_id]:
             self._item_callbacks[item_id].append(callback)
 
     def remove_item_callback(self, item_id, callback=None):
         """Unregister callback(s) for an item.
-        ⭐ MODIFIÉ : Supporte la suppression sélective ou totale.
+        MODIFIED: Supports selective or complete removal.
 
         Parameters:
             `item_id` - The Control4 item ID.
@@ -160,17 +158,17 @@ class C4Websocket:
             return
             
         if callback is None:
-            # Supprimer tous les callbacks pour cet item_id
+            # Remove all callbacks for this item_id
             del self._item_callbacks[item_id]
         else:
-            # Supprimer un callback specific
+            # Remove a specific callback
             try:
                 self._item_callbacks[item_id].remove(callback)
-                # Si plus de callbacks, supprimer l'entrée
+                # If no more callbacks, remove the entry
                 if not self._item_callbacks[item_id]:
                     del self._item_callbacks[item_id]
             except ValueError:
-                pass  # Callback pas trouvé
+                pass 
 
     async def sio_connect(self, director_bearer_token):
         """Start WebSockets connection and listen, using the provided director_bearer_token to authenticate with the Control4 Director.
@@ -220,13 +218,12 @@ class C4Websocket:
         """Process an incoming event message."""
         _LOGGER.debug(message)
         try:
-            callbacks = self._item_callbacks[message["iddevice"]]  # ⭐ MODIFIÉ : récupère la liste
+            callbacks = self._item_callbacks[message["iddevice"]]  
         except KeyError:
             _LOGGER.debug("No Callback for device id {}".format(message["iddevice"]))
             return True
 
-        # ⭐ MODIFIÉ : Appelle tous les callbacks pour cet item_id
-        for callback in callbacks[:]:  # Copie pour éviter les modifications concurrentes
+        for callback in callbacks[:]:  
             try:
                 if isinstance(message, list):
                     for m in message:
