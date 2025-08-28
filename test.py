@@ -42,7 +42,7 @@ director = C4Director(ip, director_bearer_token["token"])
 #alarm = C4SecurityPanel(director, 460)
 #print(asyncio.run(alarm.getEmergencyTypes()))
 
-print(asyncio.run(director.getItemSetup(789)))
+print(asyncio.run(director.getItemSetup(293)))
 
 # sensor = C4ContactSensor(director, 471)
 # print(asyncio.run(sensor.getContactState()))
@@ -54,6 +54,9 @@ print(asyncio.run(director.getItemSetup(789)))
 
 # print(asyncio.run(director.getAllItemVariableValue("LIGHT_LEVEL")))
 
-# light = C4Light(director, 253)
+light = C4Light(director, 789)
 # asyncio.run(light.rampToLevel(10, 10000))
 # print(asyncio.run(light.getState()))
+#asyncio.run(light.setColorTemperature(2500, rate=1000))
+#asyncio.run(light.setColorRGB(255, 0, 0, rate=1000))
+
