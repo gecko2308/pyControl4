@@ -54,9 +54,9 @@ print(asyncio.run(director.getItemSetup(293)))
 
 # print(asyncio.run(director.getAllItemVariableValue("LIGHT_LEVEL")))
 
-light = C4Light(director, 789)
+#light = C4Light(director, 789)
 # asyncio.run(light.rampToLevel(10, 10000))
 # print(asyncio.run(light.getState()))
-#asyncio.run(light.setColorTemperature(2500, rate=1000))
+#asyncio.run(light.setColorTemperature(4000, rate=1000))
 #asyncio.run(light.setColorRGB(255, 0, 0, rate=1000))
 

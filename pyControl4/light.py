@@ -46,9 +46,9 @@ class C4Light(C4Entity):
 
     async def setColorXY(self, x: float, y: float, *, rate: int | None = None, mode: int = 0):
         """
-        Envoie SET_COLOR_TARGET avec xy et mode.
-        - x, y: coordonnées CIE 1931 (0..1 ~ typiquement)
-        - rate: durée de rampe en millisecondes (Optionnel)
+        Sends SET_COLOR_TARGET with xy and mode.
+        - x, y: CIE 1931 coordinates (0..1 ~ typically)
+        - rate: ramp duration in milliseconds (Optional)
         - mode: 0 = full color, 1 = CCT
         """
         params = {
@@ -80,7 +80,7 @@ class C4Light(C4Entity):
         x, y = self._cct_to_xy(kelvin)
         await self.setColorXY(x, y, rate=rate, mode=1)
 
-# ---------- Utilitaires couleur ----------
+# ---------- Color Utilities ----------
     @staticmethod
     def _hex_to_rgb(color: str) -> tuple[int, int, int]:
         s = color.strip()
@@ -102,7 +102,7 @@ class C4Light(C4Entity):
 
     @classmethod
     def _rgb_to_xy(cls, r: int, g: int, b: int) -> tuple[float, float]:
-        # Normalise 0..255 -> 0..1 sRGB
+        # Normalize 0..255 -> 0..1 sRGB
         rs = r / 255.0
         gs = g / 255.0
         bs = b / 255.0
@@ -116,26 +116,26 @@ class C4Light(C4Entity):
         Z = rlin * 0.0193 + glin * 0.1192 + blin * 0.9505
         denom = X + Y + Z
         if denom <= 1e-9:
-            return 0.3127, 0.3290  # fallback D65 si noir complet
+            return 0.3127, 0.3290  # fallback D65 if complete black
         x = X / denom
         y = Y / denom
-        # Optionnel: arrondir à 4 décimales (beaucoup de drivers aiment)
+        # Optionally round to 4 decimal places (many drivers prefer this)
         return round(x, 4), round(y, 4)
 
     @staticmethod
     def _cct_to_xy(kelvin: int) -> tuple[float, float]:
-        """Approximation CIE 1931 xy pour 1667K..25000K (formules classiques)."""
+        """Approximation CIE 1931 xy for 1667K..25000K (classic formulas)."""
         K = float(kelvin)
         if K < 1667: K = 1667.0
         if K > 25000: K = 25000.0
 
-        # x en fonction de K
+        # x as a function of K
         if 1667 <= K <= 4000:
             x = (-0.2661239 * 1e9) / (K ** 3) - (0.2343580 * 1e6) / (K ** 2) + (0.8776956 * 1e3) / K + 0.179910
         else:  # 4000..25000
             x = (-3.0258469 * 1e9) / (K ** 3) + (2.1070379 * 1e6) / (K ** 2) + (0.2226347 * 1e3) / K + 0.240390
 
-        # y en fonction de x et K
+        # y as a function of x and K
         if 1667 <= K <= 2222:
             y = -1.1063814 * x**3 - 1.34811020 * x**2 + 2.18555832 * x - 0.20219683
         elif 2222 < K <= 4000:
